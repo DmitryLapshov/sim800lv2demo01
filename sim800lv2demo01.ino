@@ -104,7 +104,7 @@ void readFromGSM()
       gsm.print(message);
       gsm.println("\"");
       sendGSMtoSerial();
-      gsm.println("AT+HTTPSSL=0");
+      gsm.println("AT+HTTPSSL=0"); // 1 - for https
       sendGSMtoSerial();
       
       gsm.println("AT+HTTPACTION=0");
