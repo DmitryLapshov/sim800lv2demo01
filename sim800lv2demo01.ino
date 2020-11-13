@@ -107,7 +107,7 @@ void readFromGSM()
       gsm.println("AT+HTTPSSL=0"); // 1 - for https
       sendGSMtoSerial();
       
-      gsm.println("AT+HTTPACTION=0");
+      gsm.println("AT+HTTPACTION=0"); // 0 - GET, 1 - POST; 
       if (wait(10000)) {
         buff = gsm.readString();
         Serial.println(buff);
