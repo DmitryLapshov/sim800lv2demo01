@@ -17,7 +17,7 @@ void setup()
   gsm.begin(9600);
 
   Serial.println("Initializing..."); 
-  delay(1000);  
+  delay(15000);  
   
   gsm.println("AT");
   sendGSMtoSerial();
@@ -30,7 +30,8 @@ void setup()
 
   gsm.println("AT+CNUM");
   sendGSMtoSerial();
-  mynumber.concat(buff.substring(22, 34));
+  int idx = buff.indexOf("+CNUM:");
+  mynumber.concat(buff.substring(idx + 12, idx + 24));
   Serial.println(mynumber);
 }
 
@@ -41,7 +42,6 @@ void loop()
 }
 
 void sendGSMtoSerial() {
-  delay(500);
   if (wait(10000)) {
     buff = gsm.readString();
     Serial.println(buff);
