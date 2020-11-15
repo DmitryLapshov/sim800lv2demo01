@@ -1,17 +1,17 @@
 #include <SoftwareSerial.h>
+// #define _SS_MAX_RX_BUFF 128 // RX buffer size in the \hardware\arduino\avr\libraries\SoftwareSerial\src\SoftwareSerial.h
 
-//Create software serial object to communicate with SIM800L
 SoftwareSerial gsm(2, 3); //SIM800L Tx & Rx is connected to Arduino #2 & #3
 
 String buff;
 String message;
+String mynumber = "%2b"; // html encoded '+'
+String token = "1234567890";
 
 void setup()
 {
-  //Begin serial communication with Arduino and Arduino IDE (Serial Monitor)
   Serial.begin(9600);
   
-  //Begin serial communication with Arduino and SIM800L
   gsm.begin(9600);
 
   Serial.println("Initializing..."); 
@@ -25,25 +25,32 @@ void setup()
   
   gsm.println("AT+CNMI=1,2,0,0,0");
   sendGSMtoSerial();
+
+  gsm.println("AT+CNUM");
+  sendGSMtoSerial();
+  mynumber.concat(buff.substring(22, 34));
+  Serial.println(mynumber);
 }
 
 void loop()
 {
-  if(Serial.available()) 
-  {
-    sendSerialToGSM();
-  }
-  if(gsm.available())
-  {
-    readFromGSM();
-  }
+  sendSerialToGSM();
+  readFromGSM();
 }
 
 void sendGSMtoSerial() {
-  if (wait(10000)) Serial.println(gsm.readString());
+  if (wait(10000)) {
+    buff = gsm.readString();
+    Serial.println(buff);
+  }
+  else {
+    buff = "";
+  }
 }
 
 void sendSerialToGSM() {
+  if(!Serial.available()) return;
+  
   gsm.println(Serial.readString());
   sendGSMtoSerial();
 }
@@ -66,8 +73,9 @@ bool wait(unsigned long timeout)
 
 void readFromGSM()
 {
-  buff = gsm.readString();
-  Serial.println(buff);
+  if (!gsm.available()) return;
+
+  sendGSMtoSerial();
 
   if (buff.indexOf("+CMT:") != -1)
   {
@@ -90,38 +98,46 @@ void readFromGSM()
       
       gsm.println("AT+CREG?");
       sendGSMtoSerial();
-      gsm.println("AT+SAPBR=3,1,\"Contype\",\"GPRS\"");
-      sendGSMtoSerial();
-      gsm.println("AT+SAPBR=3,1,\"APN\",\"internet\"");
-      sendGSMtoSerial();
-      gsm.println("AT+SAPBR=1,1");
-      sendGSMtoSerial();
-      gsm.println("AT+HTTPINIT");
-      sendGSMtoSerial();
-      gsm.println("AT+HTTPPARA=\"CID\",1");
-      sendGSMtoSerial();
-      gsm.print("AT+HTTPPARA=\"URL\",\"some.site.com/test-api/\?message=");
-      gsm.print(message);
-      gsm.println("\"");
-      sendGSMtoSerial();
-      gsm.println("AT+HTTPSSL=0"); // 1 - for https
-      sendGSMtoSerial();
       
-      gsm.println("AT+HTTPACTION=0");
-      if (wait(10000)) {
-        buff = gsm.readString();
-        Serial.println(buff);
+      if (buff.indexOf("+CREG: 0,1") != -1) { // if connected to the network
+        gsm.println("AT+SAPBR=3,1,\"Contype\",\"GPRS\"");
+        sendGSMtoSerial();
+        gsm.println("AT+SAPBR=3,1,\"APN\",\"internet\"");
+        sendGSMtoSerial();
+        gsm.println("AT+SAPBR=1,1");
+        sendGSMtoSerial();
+        gsm.println("AT+HTTPINIT");
+        sendGSMtoSerial();
+        gsm.println("AT+HTTPPARA=\"CID\",1");
+        sendGSMtoSerial();
+        gsm.print("AT+HTTPPARA=\"URL\",\"web.hosting-test.net/api/?token=");
+        gsm.print(token);
+        gsm.print("&source=");
+        gsm.print(mynumber);
+        gsm.print("&type=");
+        gsm.print("0");
+        gsm.print("&value=");
+        gsm.print(message);
+        gsm.println("\"");
+        // "web.hosting-test.net/api/?token=1234567890&source=%2b38095XXXXXXX&type=0&value=Test+is+a+test+01"
+        sendGSMtoSerial();
+        gsm.println("AT+HTTPSSL=0");
+        sendGSMtoSerial();
+        
+        gsm.println("AT+HTTPACTION=0");
+        sendGSMtoSerial();
+        
         if (buff.indexOf("ERROR") == -1) {
           sendGSMtoSerial();
           gsm.println("AT+HTTPREAD");
           sendGSMtoSerial();
         }
-      }      
-      
-      gsm.println("AT+HTTPTERM");
-      sendGSMtoSerial();
-      gsm.println("AT+SAPBR=0,1");
-      sendGSMtoSerial();
+        
+        gsm.println("AT+HTTPTERM");
+        sendGSMtoSerial();
+        gsm.println("AT+SAPBR=0,1");
+        sendGSMtoSerial();
+      }
     }
   }
 }
